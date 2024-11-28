@@ -33,23 +33,10 @@ export const handler: SQSHandler = async (event: any) => {
         const srcBucket = s3e.bucket.name;
         // Object key may have spaces or unicode non-ASCII characters.
         const srcKey = decodeURIComponent(s3e.object.key.replace(/\+/g, " "));
-        
+
         const fileType = srcKey.split('.').pop()?.toLowerCase();
-        
-        if (fileType === "jpeg" || fileType === "png") {
-          try {
-            const { name, email, message }: ContactDetails = {
-              name: "The Photo Album",
-              email: SES_EMAIL_FROM,
-              message: `We received your Image. Its URL is s3://${srcBucket}/${srcKey}`,
-            };
-            const params = sendEmailParams({ name, email, message });
-            await client.send(new SendEmailCommand(params));
-            console.log(`Successfully sent email for file: ${srcKey}`);
-          } catch (error: unknown) {
-            console.log("ERROR is: ", error);
-          }
-        } else {
+
+        if (fileType !== "jpeg" && fileType !== "png") {
           try {
             const { name, email, message }: ContactDetails = {
               name: "The Photo Album",
@@ -61,6 +48,7 @@ export const handler: SQSHandler = async (event: any) => {
             console.log(`Rejection email sent for file: ${srcKey}`);
           } catch (error: unknown) {
             console.log("ERROR is: ", error);
+            // return;
           }
         }
       }

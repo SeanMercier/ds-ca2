@@ -2,40 +2,87 @@
 import { SQSHandler } from "aws-lambda";
 import {
   GetObjectCommand,
-  PutObjectCommandInput,
-  GetObjectCommandInput,
   S3Client,
-  PutObjectCommand,
 } from "@aws-sdk/client-s3";
+import {
+  DynamoDBClient,
+} from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
 
 const s3 = new S3Client();
+const ddbDocClient = createDDbDocClient();
+
+const validFileExtensions = [".jpeg", ".png"]; // Allowed file types
+const tableName = process.env.TABLE_NAME; // DynamoDB table name
+
+if (!tableName) {
+  throw new Error("Environment variable TABLE_NAME is not set");
+}
 
 export const handler: SQSHandler = async (event) => {
-  console.log("Event ", JSON.stringify(event));
-  for (const record of event.Records) {
-    const recordBody = JSON.parse(record.body);        // Parse SQS message
-    const snsMessage = JSON.parse(recordBody.Message); // Parse SNS message
+  console.log("Event ", event);
 
-    if (snsMessage.Records) {
-      console.log("Record body ", JSON.stringify(snsMessage));
-      for (const messageRecord of snsMessage.Records) {
+  for (const record of event.Records) {
+    const recordBody = JSON.parse(record.body);
+    console.log('Raw SNS message ', JSON.stringify(recordBody));
+
+    const recordMessage = JSON.parse(recordBody.Message);
+    console.log('SNS Message: ', recordMessage);
+
+    if (recordMessage.Records) {
+      for (const messageRecord of recordMessage.Records) {
+
         const s3e = messageRecord.s3;
         const srcBucket = s3e.bucket.name;
-        // Object key may have spaces or unicode non-ASCII characters.
-        const srcKey = decodeURIComponent(s3e.object.key.replace(/\+/g, " "));
-        let origimage = null;
+        const srcKey = decodeURIComponent(s3e.object.key.replace(/\+/g, " ")); // Decode S3 object key
+
+        console.log(`Processing file: ${srcKey} in bucket: ${srcBucket}`);
+
+        // Validate file type
+        const fileExtension = srcKey.split('.').pop()?.toLowerCase();
+        if (!fileExtension || !validFileExtensions.includes(`.${fileExtension}`)) {
+          console.error(`Invalid file type for file: ${srcKey}`);
+          throw new Error(`Invalid file type for file: ${srcKey}`);
+        }
+
         try {
-          // Download the image from the S3 source bucket.
-          const params: GetObjectCommandInput = {
+          // Download the image from S3
+          const params = {
             Bucket: srcBucket,
             Key: srcKey,
           };
-          origimage = await s3.send(new GetObjectCommand(params));
-          // Process the image ......
+          const origimage = await s3.send(new GetObjectCommand(params));
+          console.log(`Successfully retrieved file from S3: ${srcKey}`);
+
+          // Add image metadata to DynamoDB
+          await ddbDocClient.send(
+            new PutCommand({
+              TableName: tableName,
+              Item: {
+                "fileName": srcKey, // Primary key
+              },
+            })
+          );
+          console.log(`Successfully added ${srcKey} to DynamoDB`);
         } catch (error) {
-          console.log(error);
+          console.error(`Error processing file ${srcKey}:`, error);
+          throw error; // Re-throw the error to trigger DLQ
         }
       }
     }
   }
 };
+
+function createDDbDocClient() {
+  const ddbClient = new DynamoDBClient({ region: process.env.REGION });
+  const marshallOptions = {
+    convertEmptyValues: true,
+    removeUndefinedValues: true,
+    convertClassInstanceToMap: true,
+  };
+  const unmarshallOptions = {
+    wrapNumbers: false,
+  };
+  const translateConfig = { marshallOptions, unmarshallOptions };
+  return DynamoDBDocumentClient.from(ddbClient, translateConfig);
+}
