@@ -37,8 +37,8 @@ export class EDAAppStack extends cdk.Stack {
     const imageProcessQueue = new sqs.Queue(this, "ImageProcessQueue", {
       receiveMessageWaitTime: cdk.Duration.seconds(10),
       deadLetterQueue: {
-        queue: dlq,
-        maxReceiveCount: 3,
+        queue: dlq,   // Pass the DLQ to this queue
+        maxReceiveCount: 3,  // After 3 failed attempts, messages are sent to DLQ
       },
     });
 
