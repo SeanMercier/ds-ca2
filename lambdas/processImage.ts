@@ -54,12 +54,17 @@ export const handler: SQSHandler = async (event) => {
           const origimage = await s3.send(new GetObjectCommand(params));
           console.log(`Successfully retrieved file from S3: ${srcKey}`);
 
-          // Add image metadata to DynamoDB
+          // Add image metadata to DynamoDB with correct key "ImageName"
           await ddbDocClient.send(
             new PutCommand({
               TableName: tableName,
               Item: {
-                "fileName": srcKey, // Primary key
+                "ImageName": srcKey, // Primary key now matches the expected key "ImageName"
+                // Additional attributes can be added here for metadata
+                "metadata": {
+                  "fileSize": origimage.ContentLength, // Example metadata
+                  "fileExtension": fileExtension,
+                }
               },
             })
           );
