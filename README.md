@@ -37,5 +37,6 @@
    export const SES_EMAIL_TO = 'verified-identity-2';
 
 2. **Run** 
-   ```typescript cdk deploy
+   ```typescript 
+   'cdk deploy'
 
