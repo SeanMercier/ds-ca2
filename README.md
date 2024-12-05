@@ -35,18 +35,16 @@
    export const SES_REGION = 'eu-west-1';
    export const SES_EMAIL_FROM = 'verified-identity-1';
    export const SES_EMAIL_TO = 'verified-identity-2';
-```
 
 
 2. **Run** 
+
 ```typescript
 cdk deploy
 ```
 
-
-3. **To upload a picture from your local directory, use the following:**
+2. **Run** 
 ```typescript
 aws s3 cp ./images/sunflower.jpeg s3://your_bucket_name/sunflower.jpeg
-```
 
 
