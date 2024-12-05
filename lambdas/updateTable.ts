@@ -10,16 +10,30 @@ export const handler: SNSHandler = async (event) => {
         const message = JSON.parse(record.Sns.Message);
         const metadataType = record.Sns.MessageAttributes.metadata_type.Value;
 
+        // Define placeholders for reserved keywords
+        const expressionAttributeNames: { [key: string]: string } = {};
+        const updateExpressionParts: string[] = [];
+        
+        // If the metadataType is "Date", use a placeholder for the reserved keyword
+        if (metadataType === "Date") {
+            expressionAttributeNames["#date"] = "Date"; // Use #date as a placeholder for "Date"
+            updateExpressionParts.push("set #date = :value");
+        } else {
+            // If metadataType is not "Date", use it directly in the update expression
+            updateExpressionParts.push(`set ${metadataType} = :value`);
+        }
+
         const updateParams = {
             TableName: IMAGE_TABLE_NAME,
             Key: {
-                ImageName: { S: message.id }
+                ImageName: { S: message.id },
             },
-            UpdateExpression: `set ${metadataType} = :value`,
-            ConditionExpression: 'attribute_exists(ImageName)',
+            UpdateExpression: updateExpressionParts.join(", "), // Combine all parts of the expression
+            ConditionExpression: "attribute_exists(ImageName)",
             ExpressionAttributeValues: {
-                ':value': { S: message.value }
-            }
+                ":value": { S: message.value },
+            },
+            ExpressionAttributeNames: expressionAttributeNames, // Use the alias for reserved words
         };
 
         try {
@@ -29,4 +43,4 @@ export const handler: SNSHandler = async (event) => {
             console.error(`Failed to update item with id ${message.id}:`, error);
         }
     }
-}
+};
