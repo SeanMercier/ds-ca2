@@ -43,8 +43,17 @@
 cdk deploy
 ```
 
-2. **Run** 
+2. **To upload a picture from your local directory, use the following command:** 
 ```typescript
 aws s3 cp ./images/sunflower.jpeg s3://your_bucket_name/sunflower.jpeg
+```
 
+3. **To add metadata to an image, use the following command:** 
+```typescript
+aws sns publish --topic-arn "your_ARN_value" --message-attributes file://attributes.json --message file://message.json
+```
 
+4. **To delete an image from the bucket, use the following command:** 
+```typescript
+aws s3api delete-object --bucket your_bucket_name --key object-key
+```
