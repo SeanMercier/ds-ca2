@@ -36,6 +36,6 @@
    export const SES_EMAIL_FROM = 'verified-identity-1';
    export const SES_EMAIL_TO = 'verified-identity-2';
 
-2. **Run** export const CDK_DEPLOY_COMMAND ='cdk deploy';
-
+2. **Run** 
+   ```typescript cdk deploy
 
