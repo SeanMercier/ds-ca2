@@ -5,11 +5,11 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { Readable } from "stream";  // Required for working with streams
 import { promisify } from "util";  // For converting streams to buffers
-import { SES_EMAIL_FROM, SES_EMAIL_TO, SES_REGION } from "../env";
-
+import { SESClient, SendEmailCommand, SendEmailCommandInput } from "@aws-sdk/client-ses";  // Add SES
 
 const s3 = new S3Client({ region: process.env.REGION });
 const ddbDocClient = createDDbDocClient();
+const sesClient = new SESClient({ region: process.env.REGION });
 
 const validFileExtensions = [".jpeg", ".png"]; // Allowed file types
 const tableName = process.env.TABLE_NAME; // DynamoDB table name
@@ -17,6 +17,9 @@ const tableName = process.env.TABLE_NAME; // DynamoDB table name
 if (!tableName) {
   throw new Error("Environment variable TABLE_NAME is not set");
 }
+
+const SES_EMAIL_FROM = process.env.SES_EMAIL_FROM || "defaultemail@example.com"; // Add default value in case it's missing
+const SES_EMAIL_TO = process.env.SES_EMAIL_TO || "defaultemail@example.com"; // Add default value
 
 // Function to get the content length of the S3 object (handle stream size)
 const getStreamLength = (stream: Readable): Promise<number> => {
@@ -92,6 +95,17 @@ export const handler: SQSHandler = async (event) => {
               })
             );
             console.log(`Successfully added ${srcKey} to DynamoDB`);
+
+            // Send success email after image is successfully uploaded
+            const { name, email, message } = {
+              name: "The Photo Album",
+              email: SES_EMAIL_FROM, // From email address
+              message: `We have successfully received your image. Its URL is s3://${srcBucket}/${srcKey}`,
+            };
+
+            const emailParams = sendEmailParams({ name, email, message });
+            await sesClient.send(new SendEmailCommand(emailParams));
+            console.log(`Successfully sent email for file: ${srcKey}`);
           } catch (error) {
             console.error(`Error processing file ${srcKey}:`, error);
             throw error; // Re-throw the error to trigger DLQ
@@ -119,6 +133,44 @@ const deleteImageFromDynamoDB = async (key: string) => {
     throw error; // Rethrow the error to trigger DLQ handling if necessary
   }
 };
+
+// Function to send the email parameters
+function sendEmailParams({ name, email, message }: { name: string; email: string; message: string }) {
+  return {
+    Destination: {
+      ToAddresses: [SES_EMAIL_TO], // To email address
+    },
+    Message: {
+      Body: {
+        Html: {
+          Charset: "UTF-8",
+          Data: getHtmlContent({ name, email, message }),
+        },
+      },
+      Subject: {
+        Charset: "UTF-8",
+        Data: `New image Upload - Success`,
+      },
+    },
+    Source: SES_EMAIL_FROM, // From email address
+  };
+}
+
+// Function to generate HTML content for the email body
+function getHtmlContent({ name, email, message }: { name: string; email: string; message: string }) {
+  return `
+    <html>
+      <body>
+        <h2>Sent from: </h2>
+        <ul>
+          <li style="font-size:18px">👤 <b>${name}</b></li>
+          <li style="font-size:18px">✉️ <b>${email}</b></li>
+        </ul>
+        <p style="font-size:18px">${message}</p>
+      </body>
+    </html>
+  `;
+}
 
 // Function to create the DynamoDB Document Client
 function createDDbDocClient() {

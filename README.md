@@ -2,9 +2,8 @@
 
 **Name:** Sean Mercier
 
-**YouTube Demo link** - [Insert the URL of the video demonstration of the app.]
+**YouTube Demo link** - (https://youtu.be/Xjs5tdW0NzA)
 
-[Note: The video must include an audio.]
 
 ## Phase 1.
 
