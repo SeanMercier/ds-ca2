@@ -18,8 +18,19 @@ export const handler: SNSHandler = async (event) => {
         if (metadataType === "Date") {
             expressionAttributeNames["#date"] = "Date"; // Use #date as a placeholder for "Date"
             updateExpressionParts.push("set #date = :value");
-        } else {
-            // If metadataType is not "Date", use it directly in the update expression
+        }
+        // If the metadataType is "Caption", use a placeholder for the reserved word
+        else if (metadataType === "Caption") {
+            expressionAttributeNames["#caption"] = "Caption"; // Use #caption as a placeholder for "Caption"
+            updateExpressionParts.push("set #caption = :value");
+        }
+        // If the metadataType is "Photographer", use a placeholder for the reserved word
+        else if (metadataType === "Photographer") {
+            expressionAttributeNames["#photographer"] = "Photographer"; // Use #photographer as a placeholder for "Photographer"
+            updateExpressionParts.push("set #photographer = :value");
+        }
+        else {
+            // If metadataType is not "Date", "Caption", or "Photographer", use it directly in the update expression
             updateExpressionParts.push(`set ${metadataType} = :value`);
         }
 

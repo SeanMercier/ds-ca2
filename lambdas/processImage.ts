@@ -5,6 +5,8 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 import { Readable } from "stream";  // Required for working with streams
 import { promisify } from "util";  // For converting streams to buffers
+import { SES_EMAIL_FROM, SES_EMAIL_TO, SES_REGION } from "../env";
+
 
 const s3 = new S3Client({ region: process.env.REGION });
 const ddbDocClient = createDDbDocClient();

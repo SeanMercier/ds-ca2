@@ -2,7 +2,7 @@ import { SQSHandler } from "aws-lambda";
 import { SESClient, SendEmailCommand, SendEmailCommandInput } from "@aws-sdk/client-ses";
 
 // Set environment variables directly in the Lambda console or use default values here.
-const SES_EMAIL_FROM = process.env.SES_EMAIL_FROM || "defaultSender@example.com";
+const SES_EMAIL_FROM = process.env.SES_EMAIL_FROM || "20094677@mail.wit.ie";
 const SES_EMAIL_TO = process.env.SES_EMAIL_TO || "20094677@mail.wit.ie";
 const SES_REGION = process.env.SES_REGION || "eu-west-1";
 
